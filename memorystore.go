@@ -121,3 +121,9 @@ func (m *MemoryStore) GetAll() map[string]string {
 	defer m.Unlock()
 	return m.data
 }
+
+func (m *MemoryStore) Clear() {
+	m.Lock()
+	defer m.Unlock()
+	m.data = make(map[string]string)
+}
