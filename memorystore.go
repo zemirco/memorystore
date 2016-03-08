@@ -114,3 +114,10 @@ func (m *MemoryStore) load(session *sessions.Session) error {
 	}
 	return nil
 }
+
+// allow manipulation from outside
+func (m *MemoryStore) GetAll() map[string]string {
+	m.Lock()
+	defer m.Unlock()
+	return m.data
+}
