@@ -1,3 +1,5 @@
+// Package memorystore implements gorilla session store interface.
+// It uses the memory for its backend.
 package memorystore
 
 import (
@@ -10,6 +12,7 @@ import (
 	"github.com/gorilla/sessions"
 )
 
+// MemoryStore stores sessions in memory.
 type MemoryStore struct {
 	Codecs  []securecookie.Codec
 	Options *sessions.Options
@@ -17,6 +20,7 @@ type MemoryStore struct {
 	data map[string]string
 }
 
+// NewMemoryStore returns a new memory store.
 func NewMemoryStore(keyPairs ...[]byte) *MemoryStore {
 	ms := &MemoryStore{
 		Codecs: securecookie.CodecsFromPairs(keyPairs...),
@@ -30,6 +34,9 @@ func NewMemoryStore(keyPairs ...[]byte) *MemoryStore {
 	return ms
 }
 
+// MaxLength restricts the maximum length of new sessions to l.
+// If l is 0 there is no limit to the size of a session, use with caution.
+// The default for a new FilesystemStore is 4096.
 func (m *MemoryStore) MaxLength(l int) {
 	for _, c := range m.Codecs {
 		if codec, ok := c.(*securecookie.SecureCookie); ok {
@@ -38,6 +45,9 @@ func (m *MemoryStore) MaxLength(l int) {
 	}
 }
 
+// MaxAge sets the maximum age for the store and the underlying cookie
+// implementation. Individual sessions can be deleted by setting Options.MaxAge
+// = -1 for that session.
 func (m *MemoryStore) MaxAge(age int) {
 	m.Options.MaxAge = age
 	// set the maxAge for each securecookie instance
@@ -48,10 +58,12 @@ func (m *MemoryStore) MaxAge(age int) {
 	}
 }
 
+// Get returns a session for the given name after adding it to the registry.
 func (m *MemoryStore) Get(r *http.Request, name string) (*sessions.Session, error) {
 	return sessions.GetRegistry(r).Get(m, name)
 }
 
+// New returns a session for the given name without adding it to the registry.
 func (m *MemoryStore) New(r *http.Request, name string) (*sessions.Session, error) {
 	session := sessions.NewSession(m, name)
 	opts := *m.Options
@@ -70,6 +82,7 @@ func (m *MemoryStore) New(r *http.Request, name string) (*sessions.Session, erro
 	return session, err
 }
 
+// Save adds a single session to the response.
 func (m *MemoryStore) Save(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
 	if session.ID == "" {
 		session.ID = strings.TrimRight(
@@ -88,6 +101,7 @@ func (m *MemoryStore) Save(r *http.Request, w http.ResponseWriter, session *sess
 	return nil
 }
 
+// save writes encoded session.Values to its internal map.
 func (m *MemoryStore) save(session *sessions.Session) error {
 	encoded, err := securecookie.EncodeMulti(session.Name(), session.Values, m.Codecs...)
 	if err != nil {
@@ -99,6 +113,7 @@ func (m *MemoryStore) save(session *sessions.Session) error {
 	return nil
 }
 
+// load reads from its internal map and decodes its content into session.Values.
 func (m *MemoryStore) load(session *sessions.Session) error {
 	m.Lock()
 	defer m.Unlock()
@@ -115,13 +130,14 @@ func (m *MemoryStore) load(session *sessions.Session) error {
 	return nil
 }
 
-// allow manipulation from outside
+// GetAll returns all sessions.
 func (m *MemoryStore) GetAll() map[string]string {
 	m.Lock()
 	defer m.Unlock()
 	return m.data
 }
 
+// Clear removes all sessions from storage.
 func (m *MemoryStore) Clear() {
 	m.Lock()
 	defer m.Unlock()
